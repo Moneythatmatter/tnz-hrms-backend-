@@ -1,0 +1,55 @@
+import {
+  deleteRow,
+  getRowById,
+  insertRow,
+  listRows,
+  newCode,
+  newId,
+  updateRow,
+  type FilterMap,
+} from "../base.js";
+
+export const hrTables = {
+  departments: "hr_departments",
+  designations: "hr_designations",
+  employmentTypes: "hr_employment_types",
+  shiftTypes: "hr_shift_types",
+  leaveTypes: "hr_leave_types",
+  leavePolicies: "hr_leave_policies",
+  holidays: "hr_holidays",
+  salaryComponents: "hr_salary_components",
+  documentCategories: "hr_document_categories",
+  documentTypes: "hr_document_types",
+  employees: "hr_employees",
+  employeeDocuments: "hr_employee_documents",
+  attendanceRecords: "hr_attendance_records",
+  shiftAssignments: "hr_shift_assignments",
+  weeklyOffs: "hr_weekly_offs",
+  leaveApplications: "hr_leave_applications",
+  overtimeRecords: "hr_overtime_records",
+  salaryStructures: "hr_salary_structures",
+  compensationRevisions: "hr_compensation_revisions",
+  bonusAwards: "hr_bonus_awards",
+  payrollRecords: "hr_payroll_records",
+  salaryPayments: "hr_salary_payments",
+  payslips: "hr_payslips",
+  complaintCategories: "hr_complaint_categories",
+  complaints: "hr_complaints",
+  approvalWorkflows: "hr_approval_workflows",
+  payrollSettings: "hr_payroll_settings",
+  taxRules: "hr_tax_rules",
+  auditLogs: "hr_audit_logs",
+} as const;
+
+export const hrModel = {
+  list: listRows,
+  get: getRowById,
+  create: insertRow,
+  update: updateRow,
+  remove: deleteRow,
+  newId,
+  newCode,
+  tables: hrTables,
+};
+
+export type { FilterMap };
