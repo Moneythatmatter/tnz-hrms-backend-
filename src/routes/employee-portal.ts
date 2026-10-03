@@ -31,4 +31,8 @@ router.get("/overtime", portal.listOvertime);
 router.get("/payslips", portal.listPayslips);
 router.get("/payslips/:id/download", portal.downloadPayslip);
 
+router.get("/grievances/categories", portal.listGrievanceCategories);
+router.get("/grievances", portal.listGrievances);
+router.post("/grievances", portal.createGrievance);
+
 export default router;

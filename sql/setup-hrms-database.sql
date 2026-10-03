@@ -544,6 +544,8 @@ create table if not exists hr_complaint_categories (
   category_name text not null,
   description text default '',
   review_level text,
+  sla_days integer not null default 7,
+  default_priority text not null default 'Medium',
   status text not null default 'Active',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -820,9 +822,23 @@ insert into hr_payslips (id, payroll_id, employee_id, payslip_no, month_label, p
 on conflict (id) do nothing;
 
 -- Complaint categories
-insert into hr_complaint_categories (id, category_name, description, review_level, status) values
-  ('m5000002-0001-4000-8000-000000000001', 'Workplace Harassment', 'Harassment complaints', 'HR Manager', 'Active'),
-  ('m5000002-0001-4000-8000-000000000002', 'Payroll & Benefits', 'Salary and payslip issues', 'HR Executive', 'Active')
+insert into hr_complaint_categories (id, category_name, description, review_level, sla_days, default_priority, status) values
+  ('m5000002-0001-4000-8000-000000000001', 'Workplace Harassment', 'Harassment complaints', 'Special Committee Review', 3, 'Critical', 'Active'),
+  ('m5000002-0001-4000-8000-000000000002', 'Payroll & Salary Issues', 'Salary and payslip issues', 'Manager Review', 7, 'High', 'Active'),
+  ('m5000002-0001-4000-8000-000000000003', 'Attendance Issues', 'Attendance and punch issues', 'Standard', 7, 'Medium', 'Active'),
+  ('m5000002-0001-4000-8000-000000000004', 'Leave Related Issues', 'Leave balance and approvals', 'Standard', 7, 'Medium', 'Active'),
+  ('m5000002-0001-4000-8000-000000000005', 'Shift Scheduling Issues', 'Shift roster concerns', 'Manager Review', 5, 'High', 'Active'),
+  ('m5000002-0001-4000-8000-000000000006', 'Overtime Issues', 'OT pay and approval', 'Manager Review', 5, 'High', 'Active'),
+  ('m5000002-0001-4000-8000-000000000007', 'Manager Complaint', 'Reporting manager conduct', 'Senior Management Review', 5, 'High', 'Active'),
+  ('m5000002-0001-4000-8000-000000000008', 'Team Conflict', 'Peer and team disputes', 'Standard', 7, 'Medium', 'Active'),
+  ('m5000002-0001-4000-8000-000000000009', 'Sexual Harassment (POSH)', 'POSH-related complaints', 'Special Committee Review', 2, 'Critical', 'Active'),
+  ('m5000002-0001-4000-8000-000000000010', 'Discrimination', 'Bias and discrimination', 'Senior Management Review', 3, 'Critical', 'Active'),
+  ('m5000002-0001-4000-8000-000000000011', 'Workplace Safety', 'Health and safety', 'Manager Review', 3, 'Critical', 'Active'),
+  ('m5000002-0001-4000-8000-000000000012', 'Policy Violation', 'Company policy breaches', 'Manager Review', 7, 'Medium', 'Active'),
+  ('m5000002-0001-4000-8000-000000000013', 'Facilities & Infrastructure', 'Facilities and workspace', 'Standard', 10, 'Low', 'Active'),
+  ('m5000002-0001-4000-8000-000000000014', 'IT/System Issues', 'HR systems and access', 'Standard', 7, 'Medium', 'Active'),
+  ('m5000002-0001-4000-8000-000000000015', 'Workload Concerns', 'Workload and staffing', 'Manager Review', 7, 'Medium', 'Active'),
+  ('m5000002-0001-4000-8000-000000000016', 'Other', 'General grievances', 'Standard', 14, 'Low', 'Active')
 on conflict (id) do nothing;
 
 -- Payroll settings

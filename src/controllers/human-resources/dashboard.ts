@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { hrModel, hrTables } from "../../models/human-resources/index.js";
+import { normalizeGrievanceStatus } from "../../utils/grievance-status.js";
 import { fromError, ok } from "../../utils/response.js";
 
 export async function getDashboard(_req: Request, res: Response) {
@@ -222,12 +223,18 @@ export async function getDashboard(_req: Request, res: Response) {
       events,
       holidaysAndShifts,
       activities,
-      grievances: {
-        open: complaints.filter((c) => c.status === "Submitted" || c.status === "Open" || !c.status).length,
-        inProgress: complaints.filter((c) => c.status === "In Progress").length,
-        escalated: complaints.filter((c) => c.status === "Escalated").length,
-        resolved: complaints.filter((c) => c.status === "Resolved" || c.status === "Closed").length,
-      },
+      grievances: (() => {
+        let submitted = 0;
+        let pending = 0;
+        let closed = 0;
+        for (const c of complaints ?? []) {
+          const bucket = normalizeGrievanceStatus(c.status);
+          if (bucket === "Closed") closed += 1;
+          else if (bucket === "Pending") pending += 1;
+          else submitted += 1;
+        }
+        return { submitted, pending, closed };
+      })(),
       payrollSummary: {
         grossPayroll,
         totalDeductions,

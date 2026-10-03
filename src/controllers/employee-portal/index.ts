@@ -2,6 +2,7 @@ import type { Response } from "express";
 import { getRowById, insertRow, listRows, newId, updateRow } from "../../models/base.js";
 import { hrTables } from "../../models/human-resources/index.js";
 import type { EmployeeRequest } from "../../middleware/employee.js";
+import { normalizeGrievanceStatus } from "../../utils/grievance-status.js";
 import {
   buildEmployeeProfile,
   getTodayAttendance,
@@ -632,6 +633,163 @@ export async function listPayslips(req: EmployeeRequest, res: Response) {
       String(b.generatedDate ?? "").localeCompare(String(a.generatedDate ?? "")),
     );
     return ok(res, mapped);
+  } catch (e) {
+    return fromError(res, e);
+  }
+}
+
+function mapPortalGrievance(row: Record<string, unknown>) {
+  return {
+    id: row.id,
+    ticketNo: row.ticketNo ?? row.ticket_no,
+    categoryId: row.categoryId ?? row.category_id,
+    category: row.category,
+    subject: row.subject,
+    description: row.description,
+    incidentDate: String(row.incidentDate ?? row.incident_date ?? "").slice(0, 10) || undefined,
+    priority: row.priority ?? "Medium",
+    status: normalizeGrievanceStatus(String(row.status ?? "Submitted")),
+    reviewLevel: row.reviewLevel ?? row.review_level,
+    submittedDate: row.submittedDate ?? row.submitted_date,
+    dueDate: String(row.dueDate ?? row.due_date ?? "").slice(0, 10) || undefined,
+    isAnonymous: Boolean(row.isAnonymous ?? row.is_anonymous),
+    proposedResolution: row.proposedResolution ?? row.proposed_resolution,
+    resolutionNotes: row.resolutionNotes ?? row.resolution_notes,
+  };
+}
+
+function mapPortalGrievanceCategory(row: Record<string, unknown>) {
+  return {
+    id: row.id,
+    categoryName: row.categoryName ?? row.category_name,
+    description: row.description ?? "",
+    reviewLevel: row.reviewLevel ?? row.review_level,
+    slaDays: Number(row.slaDays ?? row.sla_days ?? 7) || 7,
+    defaultPriority: String(row.defaultPriority ?? row.default_priority ?? "Medium"),
+  };
+}
+
+function newTicketNo(): string {
+  const rand = Math.floor(1000 + Math.random() * 9000);
+  return `TCK-${new Date().getFullYear()}-${rand}`;
+}
+
+export async function listGrievanceCategories(_req: EmployeeRequest, res: Response) {
+  try {
+    const rows = await listRows<Record<string, unknown>>(hrTables.complaintCategories, {
+      orderBy: "category_name",
+    }).catch(() => []);
+    const active = rows.filter((r) => {
+      const status = String(r.status ?? "Active").toLowerCase();
+      return status === "active" || status === "";
+    });
+    return ok(res, active.map(mapPortalGrievanceCategory));
+  } catch (e) {
+    return fromError(res, e);
+  }
+}
+
+export async function listGrievances(req: EmployeeRequest, res: Response) {
+  try {
+    const rows = await listRows<Record<string, unknown>>(hrTables.complaints, {
+      filters: { employee_id: req.employeeId! },
+      orderBy: "submitted_date",
+    }).catch(() => []);
+    const mapped = rows
+      .map(mapPortalGrievance)
+      .sort((a, b) => String(b.submittedDate ?? "").localeCompare(String(a.submittedDate ?? "")));
+    return ok(res, mapped);
+  } catch (e) {
+    return fromError(res, e);
+  }
+}
+
+export async function createGrievance(req: EmployeeRequest, res: Response) {
+  try {
+    const body = req.body as Record<string, unknown>;
+    const subject = String(body.subject ?? "").trim();
+    const description = String(body.description ?? "").trim();
+    if (!subject) return fail(res, "Subject is required", 400);
+    if (!description) return fail(res, "Description is required", 400);
+
+    const categoryIdRaw = body.categoryId ?? body.category_id;
+    const categoryId =
+      categoryIdRaw !== null && categoryIdRaw !== undefined
+        ? String(categoryIdRaw).trim()
+        : "";
+
+    let categoryName = String(body.category ?? "").trim();
+    let reviewLevel: string | undefined;
+    let slaDays = 7;
+    let defaultPriority = "Medium";
+
+    if (categoryId) {
+      const cat = await getRowById<Record<string, unknown>>(
+        hrTables.complaintCategories,
+        categoryId,
+      );
+      if (!cat) return fail(res, "Invalid grievance category", 400);
+      categoryName =
+        String(cat.categoryName ?? cat.category_name ?? categoryName).trim() || categoryName;
+      const rl = cat.reviewLevel ?? cat.review_level;
+      reviewLevel = rl ? String(rl) : undefined;
+      slaDays = Number(cat.slaDays ?? cat.sla_days ?? 7) || 7;
+      defaultPriority = String(cat.defaultPriority ?? cat.default_priority ?? "Medium");
+    }
+
+    if (!categoryName) return fail(res, "Category is required", 400);
+
+    const allowedPriority = new Set(["Low", "Medium", "High", "Critical"]);
+    const priorityRaw = body.priority ?? defaultPriority;
+    const priority = String(priorityRaw);
+    if (!allowedPriority.has(priority)) {
+      return fail(res, "Invalid priority", 400);
+    }
+
+    const incidentDateRaw = body.incidentDate ?? body.incident_date;
+    const incidentDate =
+      incidentDateRaw !== null && incidentDateRaw !== undefined
+        ? String(incidentDateRaw).slice(0, 10)
+        : undefined;
+
+    const due = new Date();
+    due.setDate(due.getDate() + Math.max(1, slaDays));
+    const dueDate = due.toISOString().slice(0, 10);
+    const submittedAt = new Date().toISOString();
+
+    const timeline = [
+      {
+        id: newId(),
+        timestamp: submittedAt,
+        action: "Submitted",
+        actor: "Employee",
+        note: "Grievance submitted via employee portal",
+        prevStatus: null,
+        newStatus: "Open",
+      },
+    ];
+
+    const created = await insertRow<Record<string, unknown>>(hrTables.complaints, {
+      id: newId("HRC"),
+      ticket_no: newTicketNo(),
+      employee_id: req.employeeId,
+      category_id: categoryId || null,
+      category: categoryName,
+      subject,
+      description,
+      incident_date: incidentDate ?? null,
+      priority,
+      status: "Submitted",
+      review_level: reviewLevel ?? null,
+      submitted_date: submittedAt,
+      due_date: dueDate,
+      is_anonymous: Boolean(body.isAnonymous ?? body.is_anonymous),
+      timeline,
+      created_at: submittedAt,
+      updated_at: submittedAt,
+    });
+
+    return ok(res, mapPortalGrievance(created), 201);
   } catch (e) {
     return fromError(res, e);
   }

@@ -75,8 +75,8 @@ const HR_API_RULES: ApiPermissionRule[] = [
   },
   {
     pattern: /^\/approval-workflows(\/|$)/,
-    readKeys: ["hr_complaint_status"],
-    writeKeys: ["hr_complaint_status"],
+    readKeys: ["hr_raise_complaint"],
+    writeKeys: ["hr_raise_complaint"],
   },
   {
     pattern: /^\/masters\/departments(\/|$)/,

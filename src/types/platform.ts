@@ -23,10 +23,9 @@ export const PLATFORM_MODULES = [
   { key: "hr_payroll_settings", label: "Payroll Settings", group: "Payroll" },
 
   // Grievances
-  { key: "hr_raise_complaint", label: "Raise Complaint", group: "Grievances" },
+  { key: "hr_raise_complaint", label: "Grievances", group: "Grievances" },
   { key: "hr_complaint_list", label: "Complaint List", group: "Grievances" },
   { key: "hr_complaint_categories", label: "Complaint Categories", group: "Grievances" },
-  { key: "hr_complaint_status", label: "Complaint Status", group: "Grievances" },
 
   // Masters
   { key: "hr_departments", label: "Departments", group: "Masters" },

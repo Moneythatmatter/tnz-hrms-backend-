@@ -236,7 +236,7 @@ const crudRoutes: {
           body.submittedDate = new Date().toISOString();
         }
         if (!body.status) {
-          body.status = "Open";
+          body.status = "Submitted";
         }
       }
       return body;
